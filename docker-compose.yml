@@ -34,5 +34,21 @@ services:
     ports:
       - "8001:8000"
 
+  rooms_service:
+    build:
+      context: .
+      dockerfile: services/rooms_service/Dockerfile
+    environment:
+      POSTGRES_USER: smr
+      POSTGRES_PASSWORD: smr_pass
+      POSTGRES_DB: smart_meeting_room
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      PORT: 8002
+    depends_on:
+      - postgres
+    ports:
+      - "8002:8002"
+
 volumes:
   pgdata:
