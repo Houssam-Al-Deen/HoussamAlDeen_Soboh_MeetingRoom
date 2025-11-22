@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: smr_pass
       POSTGRES_DB: smart_meeting_room
     ports:
-      - "5432:5432"
+      - "5433:5432"  # changed host port to avoid local conflict
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
