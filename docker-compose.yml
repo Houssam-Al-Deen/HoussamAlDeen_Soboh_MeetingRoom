@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16
+    # If on ARM and see exec format errors again, uncomment next line:
+    # platform: linux/amd64
     environment:
       POSTGRES_USER: smr
       POSTGRES_PASSWORD: smr_pass
@@ -10,13 +12,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smr"]
+      test: ["CMD-SHELL", "pg_isready -U smr -d smart_meeting_room"]
       interval: 5s
       timeout: 3s
       retries: 5
 
   users_service:
-    build: ./services/users_service
+    build:
+      context: .
+      dockerfile: services/users_service/Dockerfile
     environment:
       POSTGRES_USER: smr
       POSTGRES_PASSWORD: smr_pass
@@ -24,6 +28,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       JWT_SECRET: devsecret
+      PORT: 8000
     depends_on:
       - postgres
     ports:
