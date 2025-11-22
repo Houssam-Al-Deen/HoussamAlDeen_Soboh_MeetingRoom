@@ -1,82 +1,95 @@
 import os
+import time
+import jwt
 from flask import Flask, request, jsonify
-import psycopg2
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
+from shared.db import get_conn, init_tables
 
 DB_USER = os.getenv("POSTGRES_USER", "smr")
 DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "smr_pass")
 DB_NAME = os.getenv("POSTGRES_DB", "smart_meeting_room")
 DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+JWT_SECRET = os.getenv("JWT_SECRET", "devsecret")
+JWT_EXP_SECONDS = 3600
 
 app = Flask(__name__)
+init_tables()
 
-CREATE_USERS_SQL = """
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(120) UNIQUE NOT NULL,
-    full_name VARCHAR(120),
-    role VARCHAR(20) DEFAULT 'user',
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-)
-"""
-
-def get_conn():
-    return psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
-
-_tables_init = False
-
-def init_tables():
-    global _tables_init
-    if _tables_init:
-        return
-    conn = get_conn(); conn.autocommit = True
-    cur = conn.cursor()
-    cur.execute(CREATE_USERS_SQL)
-    cur.close(); conn.close()
-    _tables_init = True
-
-@app.route('/users/register', methods=['POST'])
+@app.post('/users/register')
 def register_user():
     data = request.get_json() or {}
-    for field in ['username','email','password']:
-        if field not in data:
-            return jsonify({'detail':'Missing required fields','code':'BAD_REQUEST'}), 400
-    init_tables()
-    password_hash = generate_password_hash(data['password'])
+    required = ['username', 'email', 'password']
+    if any(k not in data or not data[k] for k in required):
+        return jsonify({'detail': 'username, email, password required', 'code': 'BAD_REQUEST'}), 400
     conn = get_conn(); cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO users (username,email,full_name,role,password_hash) VALUES (%s,%s,%s,%s,%s) RETURNING id, username, email, role",(
-            data['username'], data['email'], data.get('full_name'), data.get('role','user'), password_hash
-        ))
-        row = cur.fetchone(); conn.commit()
-        return jsonify({'id':row[0],'username':row[1],'email':row[2],'role':row[3]}), 201
-    except psycopg2.errors.UniqueViolation:
-        conn.rollback(); return jsonify({'detail':'Username or email exists','code':'CONFLICT'}), 409
-    except Exception:
-        conn.rollback(); return jsonify({'detail':'Server error','code':'SERVER_ERROR'}), 500
-    finally:
+        cur.execute(
+            "INSERT INTO users (username, email, full_name, role, password_hash) VALUES (%s, %s, %s, %s, %s) RETURNING id, username, email, full_name, role, created_at",
+            (
+                data['username'],
+                data['email'],
+                data.get('full_name'),
+                data.get('role', 'user'),
+                generate_password_hash(data['password'])
+            )
+        )
+        row = cur.fetchone()
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
         cur.close(); conn.close()
+        if 'unique' in str(e).lower():
+            return jsonify({'detail': 'username or email already exists', 'code': 'CONFLICT'}), 409
+        return jsonify({'detail': 'server error', 'code': 'SERVER_ERROR'}), 500
+    cur.close(); conn.close()
+    return jsonify({
+        'id': row[0],
+        'username': row[1],
+        'email': row[2],
+        'full_name': row[3],
+        'role': row[4],
+        'created_at': row[5].isoformat() if row[5] else None
+    }), 201
 
-@app.route('/users', methods=['GET'])
+@app.get('/users')
 def list_users():
-    init_tables()
     conn = get_conn(); cur = conn.cursor()
-    cur.execute("SELECT id, username, email, role FROM users ORDER BY id")
+    cur.execute("SELECT id, username, email, full_name, role, created_at FROM users ORDER BY id ASC")
     rows = cur.fetchall()
     cur.close(); conn.close()
-    return jsonify([
-        {'id': r[0], 'username': r[1], 'email': r[2], 'role': r[3]} for r in rows
-    ])
+    users = []
+    for r in rows:
+        users.append({
+            'id': r[0],
+            'username': r[1],
+            'email': r[2],
+            'full_name': r[3],
+            'role': r[4],
+            'created_at': r[5].isoformat() if r[5] else None
+        })
+    return jsonify(users)
+
+@app.post('/auth/login')
+def login():
+    data = request.get_json() or {}
+    if 'username' not in data or 'password' not in data:
+        return jsonify({'detail': 'username and password required', 'code': 'BAD_REQUEST'}), 400
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("SELECT id, username, email, role, password_hash FROM users WHERE username = %s", (data['username'],))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+    if not row or not check_password_hash(row[4], data['password']):
+        return jsonify({'detail': 'Invalid credentials', 'code': 'UNAUTHORIZED'}), 401
+    payload = {
+        'sub': row[0],
+        'username': row[1],
+        'role': row[3],
+        'exp': int(time.time()) + JWT_EXP_SECONDS
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+    return jsonify({'access_token': token, 'token_type': 'bearer'})
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT',8001))
+    port = int(os.getenv('PORT', 8001))
     app.run(host='0.0.0.0', port=port)
