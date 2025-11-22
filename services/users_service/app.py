@@ -66,6 +66,17 @@ def register_user():
     finally:
         cur.close(); conn.close()
 
+@app.route('/users', methods=['GET'])
+def list_users():
+    init_tables()
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("SELECT id, username, email, role FROM users ORDER BY id")
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    return jsonify([
+        {'id': r[0], 'username': r[1], 'email': r[2], 'role': r[3]} for r in rows
+    ])
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT',8001))
     app.run(host='0.0.0.0', port=port)
