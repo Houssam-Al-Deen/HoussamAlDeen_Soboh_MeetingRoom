@@ -13,12 +13,19 @@ app = Flask(__name__)
 init_tables()  # bookings table already created in shared schema
 
 def _booking_row_to_dict(r):
+    def _norm(dt):
+        if dt is None:
+            return None
+        # Always return naive ISO string (no timezone suffix) for simplicity in tests
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt.isoformat()
     return {
         'id': r[0],
         'user_id': r[1],
         'room_id': r[2],
-        'start_time': r[3].isoformat(),
-        'end_time': r[4].isoformat(),
+        'start_time': _norm(r[3]),
+        'end_time': _norm(r[4]),
         'status': r[5]
     }
 #added these cuz of timezone issues
