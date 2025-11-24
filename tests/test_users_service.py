@@ -9,11 +9,11 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 # DB env (docker compose mapping)
-os.environ.setdefault('POSTGRES_USER', 'smr')
-os.environ.setdefault('POSTGRES_PASSWORD', 'smr_pass')
-os.environ.setdefault('POSTGRES_DB', 'smart_meeting_room')
+os.environ['POSTGRES_USER'] = 'smr'
+os.environ['POSTGRES_PASSWORD'] = 'smr_pass'
+os.environ['POSTGRES_DB'] = 'smart_meeting_room_test'
 os.environ['POSTGRES_HOST'] = '127.0.0.1'
-os.environ['POSTGRES_PORT'] = '5433'
+os.environ['POSTGRES_PORT'] = '5434'
 
 from shared.db import get_conn
 from services.users_service.app import app
@@ -39,7 +39,7 @@ def clean_db():
 def client():
     return app.test_client()
 
-# Helpers
+
 def register(client, username='u1', email='u1@example.com', password='Pass123!', role=None):
     payload = {
         'username': username,

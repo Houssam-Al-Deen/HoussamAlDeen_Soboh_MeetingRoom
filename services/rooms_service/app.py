@@ -1,4 +1,7 @@
 import os
+import time
+import jwt
+import functools
 from flask import Flask, request, jsonify
 
 # Import shared DB helpers with fallback path logic
@@ -12,6 +15,46 @@ except ModuleNotFoundError:
 app = Flask(__name__)
 init_tables()  # ensure tables exist
 
+JWT_SECRET = os.getenv("JWT_SECRET", "devsecret")
+JWT_EXP_SECONDS = 3600
+
+# --------------- Auth helpers (mirrors users service) ---------------
+
+def _decode_token():
+    auth = request.headers.get('Authorization')
+    if not auth or not auth.startswith('Bearer '):
+        return None, ('auth required', 401)
+    token = auth.split(' ', 1)[1]
+    try:
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+    except Exception:
+        return None, ('invalid token', 401)
+    return decoded, None
+
+def require_auth(fn):
+    @functools.wraps(fn)
+    def inner(*a, **kw):
+        info, err = _decode_token()
+        if err:
+            return jsonify({'detail': err[0]}), err[1]
+        request._auth = info
+        return fn(*a, **kw)
+    return inner
+
+def require_roles(*roles):
+    def deco(fn):
+        @functools.wraps(fn)
+        def inner(*a, **kw):
+            info, err = _decode_token()
+            if err:
+                return jsonify({'detail': err[0]}), err[1]
+            if info.get('role') not in roles:
+                return jsonify({'detail': 'forbidden'}), 403
+            request._auth = info
+            return fn(*a, **kw)
+        return inner
+    return deco
+
 # Helper to convert a room row tuple to dict
 def _room_row_to_dict(r):
     return {
@@ -24,6 +67,7 @@ def _room_row_to_dict(r):
     }
 
 @app.post('/rooms')
+@require_roles('admin')
 def create_room():
     """Create a new meeting room (name, capacity, equipment, location)."""
     data = request.get_json() or {}
@@ -61,6 +105,7 @@ def list_rooms():
     return jsonify([_room_row_to_dict(r) for r in rows])
 
 @app.patch('/rooms/<int:room_id>')
+@require_roles('admin')
 def update_room(room_id):
     """Update capacity/equipment/location of a room."""
     data = request.get_json() or {}
@@ -95,6 +140,7 @@ def update_room(room_id):
     return jsonify(_room_row_to_dict(row))
 
 @app.delete('/rooms/<int:room_id>')
+@require_roles('admin')
 def delete_room(room_id):
     """Delete a room by id."""
     conn = get_conn(); cur = conn.cursor()
