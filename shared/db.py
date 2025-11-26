@@ -8,13 +8,27 @@ DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
 def get_conn():
-    return psycopg2.connect(
+    conn = psycopg2.connect(
         dbname=DB_NAME,
         user=DB_USER,
         password=DB_PASSWORD,
         host=DB_HOST,
         port=DB_PORT
     )
+    # Set session timezone to match system timezone for naive timestamp interpretation
+    old_autocommit = conn.autocommit
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        import time
+        # Get system UTC offset in hours
+        is_dst = time.daylight and time.localtime().tm_isdst > 0
+        offset_sec = -(time.altzone if is_dst else time.timezone)
+        offset_hours = offset_sec / 3600
+        # Set Postgres session timezone
+        cur.execute(f"SET TIME ZONE INTERVAL '{offset_hours} hours'")
+    conn.autocommit = old_autocommit
+    return conn
+    return conn
 
 _initialized = False
 

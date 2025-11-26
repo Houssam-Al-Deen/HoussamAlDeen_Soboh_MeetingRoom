@@ -18,6 +18,7 @@ from services.bookings_service.app import app as bookings_app  # noqa
 from shared.db import get_conn
 
 JWT_SECRET = os.getenv('JWT_SECRET', 'devsecret')
+API_PREFIX = f"/api/{os.getenv('API_VERSION','v1')}"
 
 
 def make_token(user_id: int, username: str, role: str) -> str:
@@ -57,21 +58,21 @@ def main():
     b3_start = base_start + timedelta(hours=3)
     b3_end = b3_start + timedelta(hours=1)
 
-    client.post('/bookings', json={'user_id': 2, 'room_id': 1, 'start_time': b1_start.isoformat(), 'end_time': b1_end.isoformat()}, headers=headers_user)
-    client.post('/bookings', json={'user_id': 2, 'room_id': 1, 'start_time': b2_start.isoformat(), 'end_time': b2_end.isoformat()}, headers=headers_user)
-    client.post('/bookings', json={'user_id': 1, 'room_id': 2, 'start_time': b3_start.isoformat(), 'end_time': b3_end.isoformat()}, headers=headers_admin)
-    client.get('/bookings', headers=headers_admin)
-    client.get('/bookings', headers=headers_user)
+    client.post(f'{API_PREFIX}/bookings', json={'user_id': 2, 'room_id': 1, 'start_time': b1_start.isoformat(), 'end_time': b1_end.isoformat()}, headers=headers_user)
+    client.post(f'{API_PREFIX}/bookings', json={'user_id': 2, 'room_id': 1, 'start_time': b2_start.isoformat(), 'end_time': b2_end.isoformat()}, headers=headers_user)
+    client.post(f'{API_PREFIX}/bookings', json={'user_id': 1, 'room_id': 2, 'start_time': b3_start.isoformat(), 'end_time': b3_end.isoformat()}, headers=headers_admin)
+    client.get(f'{API_PREFIX}/bookings', headers=headers_admin)
+    client.get(f'{API_PREFIX}/bookings', headers=headers_user)
     upd_start = b1_start + timedelta(minutes=15)
     upd_end = upd_start + timedelta(hours=1)
-    client.patch('/bookings/1', json={'start_time': upd_start.isoformat(), 'end_time': upd_end.isoformat()}, headers=headers_user)
+    client.patch(f'{API_PREFIX}/bookings/1', json={'start_time': upd_start.isoformat(), 'end_time': upd_end.isoformat()}, headers=headers_user)
     force_upd_start = b3_start + timedelta(minutes=10)
     force_upd_end = force_upd_start + timedelta(hours=1)
-    client.patch('/bookings/3', json={'start_time': force_upd_start.isoformat(), 'end_time': force_upd_end.isoformat(), 'force': True}, headers=headers_admin)
-    client.get(f'/bookings/check?room_id=1&start={b1_start.isoformat()}&end={b1_end.isoformat()}')
-    client.delete('/bookings/2', headers=headers_user)
-    client.post('/bookings/3/force-cancel', headers=headers_admin)
-    client.delete('/bookings/1', headers=headers_user)
+    client.patch(f'{API_PREFIX}/bookings/3', json={'start_time': force_upd_start.isoformat(), 'end_time': force_upd_end.isoformat(), 'force': True}, headers=headers_admin)
+    client.get(f'{API_PREFIX}/bookings/check?room_id=1&start={b1_start.isoformat()}&end={b1_end.isoformat()}')
+    client.delete(f'{API_PREFIX}/bookings/2', headers=headers_user)
+    client.post(f'{API_PREFIX}/bookings/3/force-cancel', headers=headers_admin)
+    client.delete(f'{API_PREFIX}/bookings/1', headers=headers_user)
 
 
 if __name__ == '__main__':

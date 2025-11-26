@@ -7,6 +7,8 @@ services:
       POSTGRES_USER: smr
       POSTGRES_PASSWORD: smr_pass
       POSTGRES_DB: smart_meeting_room
+      TZ: Africa/Cairo
+      PGTZ: Africa/Cairo
     ports:
       - "5433:5432"  # changed host port to avoid local conflict
     volumes:
@@ -61,6 +63,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       PORT: 8003
+      USE_HTTP_VALIDATION: "1"
     depends_on:
       - postgres
     ports:

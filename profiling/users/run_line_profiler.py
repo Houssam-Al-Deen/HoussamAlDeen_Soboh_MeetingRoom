@@ -16,6 +16,7 @@ os.environ['POSTGRES_PORT'] = '5434'
 from services.users_service.app import app as users_app, register_user, list_users, login, get_me, update_me, delete_me, admin_update_user, admin_delete_user, get_user_by_username, user_booking_history  # noqa
 
 JWT_SECRET = os.getenv('JWT_SECRET', 'devsecret')
+API_PREFIX = f"/api/{os.getenv('API_VERSION','v1')}"
 
 
 def unwrap(fn):
@@ -26,29 +27,29 @@ def unwrap(fn):
 
 def bootstrap_initial():
     client = users_app.test_client()
-    client.post('/users/register', json={'username': 'admin', 'email': 'admin@example.com', 'password': 'x', 'role': 'admin', 'full_name': 'Admin'})
-    client.post('/users/register', json={'username': 'alice', 'email': 'alice@example.com', 'password': 'x', 'full_name': 'Alice'})
+    client.post(f'{API_PREFIX}/users/register', json={'username': 'admin', 'email': 'admin@example.com', 'password': 'x', 'role': 'admin', 'full_name': 'Admin'})
+    client.post(f'{API_PREFIX}/users/register', json={'username': 'alice', 'email': 'alice@example.com', 'password': 'x', 'full_name': 'Alice'})
 
 
 def main_flow():
     bootstrap_initial()
     client = users_app.test_client()
-    admin_token = client.post('/auth/login', json={'username': 'admin', 'password': 'x'}).get_json().get('access_token')
-    user_token = client.post('/auth/login', json={'username': 'alice', 'password': 'x'}).get_json().get('access_token')
+    admin_token = client.post(f'{API_PREFIX}/auth/login', json={'username': 'admin', 'password': 'x'}).get_json().get('access_token')
+    user_token = client.post(f'{API_PREFIX}/auth/login', json={'username': 'alice', 'password': 'x'}).get_json().get('access_token')
     h_admin = {'Authorization': f'Bearer {admin_token}'}
     h_user = {'Authorization': f'Bearer {user_token}'}
-    client.get('/users', headers=h_admin)
-    client.get('/users/me', headers=h_user)
-    client.patch('/users/me', json={'full_name': 'Alice Q'}, headers=h_user)
-    client.get('/users/alice', headers=h_user)
-    client.patch('/users/alice', json={'role': 'moderator'}, headers=h_admin)
-    client.get('/users/alice/bookings', headers=h_user)
-    client.delete('/users/alice', headers=h_admin)
-    client.post('/users/register', json={'username': 'temp', 'email': 'temp@example.com', 'password': 'x', 'full_name': 'Temp'})
-    temp_token = client.post('/auth/login', json={'username': 'temp', 'password': 'x'}).get_json().get('access_token')
+    client.get(f'{API_PREFIX}/users', headers=h_admin)
+    client.get(f'{API_PREFIX}/users/me', headers=h_user)
+    client.patch(f'{API_PREFIX}/users/me', json={'full_name': 'Alice Q'}, headers=h_user)
+    client.get(f'{API_PREFIX}/users/alice', headers=h_user)
+    client.patch(f'{API_PREFIX}/users/alice', json={'role': 'moderator'}, headers=h_admin)
+    client.get(f'{API_PREFIX}/users/alice/bookings', headers=h_user)
+    client.delete(f'{API_PREFIX}/users/alice', headers=h_admin)
+    client.post(f'{API_PREFIX}/users/register', json={'username': 'temp', 'email': 'temp@example.com', 'password': 'x', 'full_name': 'Temp'})
+    temp_token = client.post(f'{API_PREFIX}/auth/login', json={'username': 'temp', 'password': 'x'}).get_json().get('access_token')
     h_temp = {'Authorization': f'Bearer {temp_token}'}
-    client.get('/users/me', headers=h_temp)
-    client.delete('/users/me', headers=h_temp)
+    client.get(f'{API_PREFIX}/users/me', headers=h_temp)
+    client.delete(f'{API_PREFIX}/users/me', headers=h_temp)
 
 
 def profile_main():

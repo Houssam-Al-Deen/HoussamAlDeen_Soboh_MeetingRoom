@@ -17,6 +17,7 @@ from services.rooms_service.app import app as rooms_app  # noqa
 from shared.db import get_conn
 
 JWT_SECRET = os.getenv('JWT_SECRET', 'devsecret')
+API_PREFIX = f"/api/{os.getenv('API_VERSION','v1')}"
 
 
 def make_token(user_id: int, username: str, role: str) -> str:
@@ -36,13 +37,13 @@ def main():
     client = rooms_app.test_client()
     admin_token = make_token(1, 'admin', 'admin')
     headers_admin = {'Authorization': f'Bearer {admin_token}'}
-    client.post('/rooms', json={'name': 'A', 'capacity': 4, 'equipment': 'TV', 'location': 'L1'}, headers=headers_admin)
-    client.post('/rooms', json={'name': 'B', 'capacity': 8, 'equipment': 'Board', 'location': 'L2'}, headers=headers_admin)
-    client.get('/rooms')
-    client.patch('/rooms/1', json={'capacity': 6, 'equipment': 'TV,Camera'}, headers=headers_admin)
-    client.get('/rooms/available?capacity=4&equipment=TV')
-    client.get('/rooms/1/status')
-    client.delete('/rooms/2', headers=headers_admin)
+    client.post(f'{API_PREFIX}/rooms', json={'name': 'A', 'capacity': 4, 'equipment': 'TV', 'location': 'L1'}, headers=headers_admin)
+    client.post(f'{API_PREFIX}/rooms', json={'name': 'B', 'capacity': 8, 'equipment': 'Board', 'location': 'L2'}, headers=headers_admin)
+    client.get(f'{API_PREFIX}/rooms')
+    client.patch(f'{API_PREFIX}/rooms/1', json={'capacity': 6, 'equipment': 'TV,Camera'}, headers=headers_admin)
+    client.get(f'{API_PREFIX}/rooms/available?capacity=4&equipment=TV')
+    client.get(f'{API_PREFIX}/rooms/1/status')
+    client.delete(f'{API_PREFIX}/rooms/2', headers=headers_admin)
 
 
 if __name__ == '__main__':

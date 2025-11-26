@@ -17,6 +17,7 @@ from services.reviews_service.app import app as reviews_app, create_review, list
 from shared.db import get_conn
 
 JWT_SECRET = os.getenv('JWT_SECRET', 'devsecret')
+API_PREFIX = f"/api/{os.getenv('API_VERSION','v1')}"
 
 
 def make_token(user_id: int, username: str, role: str) -> str:
@@ -50,11 +51,11 @@ def main_flow():
     h_admin = {'Authorization': f'Bearer {admin_tok}'}
     h_user = {'Authorization': f'Bearer {user_tok}'}
     h_mod = {'Authorization': f'Bearer {mod_tok}'}
-    client.post('/reviews', json={'room_id': 1, 'user_id': 2, 'rating': 5, 'comment': 'Nice'}, headers=h_user)
-    client.get('/rooms/1/reviews')
-    client.patch('/reviews/1', json={'comment': 'Updated'}, headers=h_user)
-    client.post('/reviews/1/flag', json={'reason': 'spam'}, headers=h_mod)
-    client.delete('/reviews/1', headers=h_admin)
+    client.post(f'{API_PREFIX}/reviews', json={'room_id': 1, 'user_id': 2, 'rating': 5, 'comment': 'Nice'}, headers=h_user)
+    client.get(f'{API_PREFIX}/rooms/1/reviews')
+    client.patch(f'{API_PREFIX}/reviews/1', json={'comment': 'Updated'}, headers=h_user)
+    client.post(f'{API_PREFIX}/reviews/1/flag', json={'reason': 'spam'}, headers=h_mod)
+    client.delete(f'{API_PREFIX}/reviews/1', headers=h_admin)
 
 
 def profile_main():
