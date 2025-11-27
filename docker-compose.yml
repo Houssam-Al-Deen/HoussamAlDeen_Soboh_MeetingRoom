@@ -1,8 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    # If on ARM and see exec format errors again, uncomment next line:
-    # platform: linux/amd64
+
     environment:
       POSTGRES_USER: smr
       POSTGRES_PASSWORD: smr_pass
@@ -31,6 +30,7 @@ services:
       POSTGRES_PORT: 5432
       JWT_SECRET: devsecret
       PORT: 8000
+      RATE_LIMIT_ENABLED: "1"
     depends_on:
       - postgres
     ports:
@@ -47,6 +47,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       PORT: 8002
+      RATE_LIMIT_ENABLED: "1"
     depends_on:
       - postgres
     ports:
@@ -64,6 +65,7 @@ services:
       POSTGRES_PORT: 5432
       PORT: 8003
       USE_HTTP_VALIDATION: "1"
+      RATE_LIMIT_ENABLED: "1"
     depends_on:
       - postgres
     ports:
@@ -80,6 +82,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       PORT: 8004
+      RATE_LIMIT_ENABLED: "1"
     depends_on:
       - postgres
     ports:

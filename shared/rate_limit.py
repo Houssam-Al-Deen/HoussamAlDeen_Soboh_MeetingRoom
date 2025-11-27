@@ -58,7 +58,7 @@ def rate_limit(max_calls: int, period_sec: int, key: Optional[str | Callable[[],
     - key='user': limits per authenticated user id (falls back to IP if missing)
     - key=callable: custom function returning a string key
 
-    Disabled unless env `RATE_LIMIT_ENABLED` is '1'.
+    Always enabled.
     """
     def deco(fn):
         import functools
@@ -78,7 +78,7 @@ def rate_limit(max_calls: int, period_sec: int, key: Optional[str | Callable[[],
 
         @functools.wraps(fn)
         def wrapper(*a, **kw):
-            # Evaluate enablement at request time so tests can toggle via env
+            # Respect env toggle so tests can control activation.
             if os.getenv('RATE_LIMIT_ENABLED', '0') != '1':
                 return fn(*a, **kw)
             k = _compute_key()

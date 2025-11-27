@@ -296,12 +296,18 @@ def update_booking(booking_id):
         st = _parse_iso(start)
         if not st:
             cur.close(); conn.close(); raise APIError('invalid start_time', status=400, code='validation_error')
+        # Normalize parsed timestamp to naive (strip tzinfo) for consistent comparisons
+        if st.tzinfo is not None:
+            st = st.replace(tzinfo=None)
         start_dt = st
 
     if end:
         et = _parse_iso(end)
         if not et:
             cur.close(); conn.close(); raise APIError('invalid end_time', status=400, code='validation_error')
+        # Normalize parsed timestamp to naive (strip tzinfo) for consistent comparisons
+        if et.tzinfo is not None:
+            et = et.replace(tzinfo=None)
         end_dt = et
     
     if end_dt <= start_dt:
