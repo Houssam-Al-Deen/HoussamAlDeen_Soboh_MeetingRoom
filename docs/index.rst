@@ -19,3 +19,4 @@ admin, user, and moderator.
    api/users
    api/rooms
    api/bookings
+   api/shared

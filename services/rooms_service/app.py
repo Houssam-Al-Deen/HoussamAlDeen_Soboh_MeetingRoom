@@ -35,7 +35,7 @@ install_error_handlers(app)
 JWT_SECRET = os.getenv("JWT_SECRET", "devsecret")
 JWT_EXP_SECONDS = 3600
 
-# --------------- Auth helpers (mirrors users service) ---------------
+
 
 def _decode_token():
     """Decode and validate the JWT from the ``Authorization`` header.
